@@ -30,6 +30,6 @@ fn main() -> TimResult<()> {
     let file = open_file(&input_file)?;
     let lexer: Lexer = Lexer::default();
     let tokens = lexer.scan_tokens(file);
-    println!("{:?}", tokens?);
+    println!("{:#?}", tokens?);
     Ok(())
 }

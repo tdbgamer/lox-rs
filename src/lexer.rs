@@ -1,10 +1,6 @@
 use std;
 use std::io::Read;
-use std::iter::{Chain, Enumerate};
-use std::str::Chars;
-use std::vec::IntoIter;
 
-use itertools::structs::TupleWindows;
 use itertools::Itertools;
 
 use crate::error::LexingError;
@@ -13,6 +9,7 @@ use crate::token::Token;
 use crate::token::TokenType;
 use crate::token::TokenType::*;
 use crate::types::LoxType;
+use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct Lexer {}
@@ -93,7 +90,7 @@ impl Lexer {
                         loop {
                             let next_letter = letters.next();
                             match next_letter {
-                                Some((idx, ('"', _))) => {
+                                Some((_idx, ('"', _))) => {
                                     tokens.push(make_token(
                                         String_,
                                         string_lit.len() + 2,
@@ -101,7 +98,7 @@ impl Lexer {
                                     ));
                                     break;
                                 }
-                                Some((idx, (chr, _))) => {
+                                Some((_idx, (chr, _))) => {
                                     string_lit.push(chr);
                                 }
                                 None => {
@@ -117,7 +114,7 @@ impl Lexer {
                         loop {
                             let next_letter: Option<(usize, (char, char))> = letters.next();
                             match next_letter {
-                                Some((idx, (chr, next)))
+                                Some((_idx, (chr, next)))
                                     if !(next.is_ascii_digit() || next == '.') =>
                                 {
                                     num_lit.push(chr);
@@ -131,7 +128,7 @@ impl Lexer {
                                     ));
                                     break;
                                 }
-                                Some((idx, (chr, _))) => {
+                                Some((_idx, (chr, _))) => {
                                     num_lit.push(chr);
                                 }
                                 None => {
@@ -148,10 +145,170 @@ impl Lexer {
                             }
                         }
                     }
+                    (lett @ 'a'...'z', _) | (lett @ 'A'...'Z', _) => handle_ident_or_keyword(
+                        &mut tokens,
+                        &mut letters,
+                        make_token,
+                        lett,
+                        line_num,
+                    )?,
                     (first, _) => return Err(LexingError::InvalidToken(first))?,
                 }
             }
         }
         Ok(tokens)
+    }
+}
+
+fn handle_ident_or_keyword(
+    tokens: &mut Vec<Token>,
+    letters: &mut impl Iterator<Item = (usize, (char, char))>,
+    make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
+    lett: char,
+    line_num: usize,
+) -> TimResult<()> {
+    let mut identifier_lit = vec![lett];
+    loop {
+        let next_letter: Option<(usize, (char, char))> = letters.next();
+        match next_letter {
+            Some((_, (first, _))) => match first {
+                'a'...'z' | 'A'...'Z' | '0'...'9' => identifier_lit.push(first),
+                _ => {
+                    tokens.push(make_ident_or_keyword(&identifier_lit, &make_token));
+                    break;
+                }
+            },
+            None => {
+                tokens.push(make_ident_or_keyword(&identifier_lit, &make_token));
+                break;
+            }
+        };
+    }
+    Ok(())
+}
+
+fn make_ident_or_keyword(
+    identifier_lit: &[char],
+    make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
+) -> Token {
+    use crate::token::RESERVED_TOKENS;
+
+    let identifier: String = identifier_lit.iter().collect();
+    if let Some(reserved) = RESERVED_TOKENS.get(identifier.as_str()) {
+        make_token(reserved.clone(), identifier_lit.len(), None)
+    } else {
+        make_token(
+            Identifier,
+            identifier_lit.len(),
+            Some(LoxType::Identifier(identifier)),
+        )
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::io::Cursor;
+
+    use super::*;
+
+    #[test]
+    fn test_string_double_eq_number() {
+        let example = r#""asdf" == 123.456"#;
+        let cur = Cursor::new(example);
+        let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+
+        assert_eq!(
+            &res[0],
+            &Token::new(
+                String_,
+                r#""asdf""#.into(),
+                Some(LoxType::String_(("asdf".into()))),
+                0
+            )
+        );
+
+        assert_eq!(
+            &res[1],
+            &Token::new(
+                EqualEqual,
+                "==".into(),
+                None,
+                0
+            )
+        );
+
+        assert_eq!(
+            &res[2],
+            &Token::new(
+                Number,
+                "123.456".into(),
+                Some(LoxType::Number(123.456)),
+                0
+            )
+        );
+    }
+
+    #[test]
+    fn test_line_number() {
+        let example = "\n123.456";
+        let cur = Cursor::new(example);
+        let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+
+        assert_eq!(
+            &res[0],
+            &Token::new(
+                Number,
+                "123.456".into(),
+                Some(LoxType::Number(123.456)),
+                1
+            )
+        );
+    }
+
+    #[test]
+    fn test_identifier() {
+        let example = "var foobar = 123.456";
+        let cur = Cursor::new(example);
+        let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+
+        assert_eq!(
+            &res[0],
+            &Token::new(
+                Var,
+                "var".into(),
+                None,
+                0
+            )
+        );
+
+        assert_eq!(
+            &res[1],
+            &Token::new(
+                Identifier,
+                "foobar".into(),
+                Some(LoxType::Identifier("foobar".into())),
+                0
+            )
+        );
+
+        assert_eq!(
+            &res[2],
+            &Token::new(
+                Equal,
+                "=".into(),
+                None,
+                0
+            )
+        );
+
+        assert_eq!(
+            &res[3],
+            &Token::new(
+                Number,
+                "123.456".into(),
+                Some(LoxType::Number(123.456)),
+                0
+            )
+        );
     }
 }

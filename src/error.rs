@@ -31,6 +31,8 @@ pub enum LexingError {
         #[cause]
         err: ParseFloatError,
     },
+    #[fail(display = "Could not parse identifier on line number {}", line_num)]
+    InvalidIdentifier { line_num: usize },
 }
 
 impl From<io::Error> for TimError {

@@ -1,11 +1,14 @@
-use crate::types::LoxType;
+use lazy_static::lazy_static;
 
-#[derive(Debug)]
+use crate::types::LoxType;
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
-    token_type: TokenType,
-    lexeme: String,
-    literal: Option<LoxType>,
-    line: u32,
+    pub token_type: TokenType,
+    pub lexeme: String,
+    pub literal: Option<LoxType>,
+    pub line: u32,
 }
 
 impl Token {
@@ -25,7 +28,7 @@ impl Token {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -74,4 +77,27 @@ pub enum TokenType {
     While,
 
     Eof,
+}
+
+lazy_static! {
+    pub static ref RESERVED_TOKENS: HashMap<&'static str, TokenType> = {
+        let mut m = HashMap::new();
+        m.insert("and", TokenType::And);
+        m.insert("class", TokenType::Class);
+        m.insert("else", TokenType::Else);
+        m.insert("false", TokenType::False);
+        m.insert("for", TokenType::For);
+        m.insert("fun", TokenType::Fun);
+        m.insert("if", TokenType::If);
+        m.insert("nil", TokenType::Nil);
+        m.insert("or", TokenType::Or);
+        m.insert("print", TokenType::Print);
+        m.insert("return", TokenType::Return);
+        m.insert("super", TokenType::Super);
+        m.insert("this", TokenType::This);
+        m.insert("true", TokenType::True);
+        m.insert("var", TokenType::Var);
+        m.insert("while", TokenType::While);
+        m
+    };
 }
