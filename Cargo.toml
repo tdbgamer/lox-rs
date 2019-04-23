@@ -1,0 +1,11 @@
+[package]
+name = "lox-rs"
+version = "0.1.0"
+authors = ["Timothy Bess <tdbgamer@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+structopt = "0.2.15"
+failure = "0.1.5"
+derive-new = "0.5.6"
+itertools = "0.8.0"
