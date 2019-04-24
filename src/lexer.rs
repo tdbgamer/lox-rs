@@ -145,13 +145,9 @@ impl Lexer {
                             }
                         }
                     }
-                    (lett @ 'a'...'z', _) | (lett @ 'A'...'Z', _) => handle_ident_or_keyword(
-                        &mut tokens,
-                        &mut letters,
-                        make_token,
-                        lett,
-                        line_num,
-                    )?,
+                    (lett @ 'a'...'z', _) | (lett @ 'A'...'Z', _) => {
+                        handle_ident_or_keyword(&mut tokens, &mut letters, make_token, lett)?
+                    }
                     (first, _) => return Err(LexingError::InvalidToken(first))?,
                 }
             }
@@ -165,7 +161,6 @@ fn handle_ident_or_keyword(
     letters: &mut impl Iterator<Item = (usize, (char, char))>,
     make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
     lett: char,
-    line_num: usize,
 ) -> TimResult<()> {
     let mut identifier_lit = vec![lett];
     loop {
@@ -222,29 +217,16 @@ mod test {
             &Token::new(
                 String_,
                 r#""asdf""#.into(),
-                Some(LoxType::String_(("asdf".into()))),
+                Some(LoxType::String_("asdf".into())),
                 0
             )
         );
 
-        assert_eq!(
-            &res[1],
-            &Token::new(
-                EqualEqual,
-                "==".into(),
-                None,
-                0
-            )
-        );
+        assert_eq!(&res[1], &Token::new(EqualEqual, "==".into(), None, 0));
 
         assert_eq!(
             &res[2],
-            &Token::new(
-                Number,
-                "123.456".into(),
-                Some(LoxType::Number(123.456)),
-                0
-            )
+            &Token::new(Number, "123.456".into(), Some(LoxType::Number(123.456)), 0)
         );
     }
 
@@ -256,12 +238,7 @@ mod test {
 
         assert_eq!(
             &res[0],
-            &Token::new(
-                Number,
-                "123.456".into(),
-                Some(LoxType::Number(123.456)),
-                1
-            )
+            &Token::new(Number, "123.456".into(), Some(LoxType::Number(123.456)), 1)
         );
     }
 
@@ -271,15 +248,7 @@ mod test {
         let cur = Cursor::new(example);
         let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
 
-        assert_eq!(
-            &res[0],
-            &Token::new(
-                Var,
-                "var".into(),
-                None,
-                0
-            )
-        );
+        assert_eq!(&res[0], &Token::new(Var, "var".into(), None, 0));
 
         assert_eq!(
             &res[1],
@@ -291,24 +260,11 @@ mod test {
             )
         );
 
-        assert_eq!(
-            &res[2],
-            &Token::new(
-                Equal,
-                "=".into(),
-                None,
-                0
-            )
-        );
+        assert_eq!(&res[2], &Token::new(Equal, "=".into(), None, 0));
 
         assert_eq!(
             &res[3],
-            &Token::new(
-                Number,
-                "123.456".into(),
-                Some(LoxType::Number(123.456)),
-                0
-            )
+            &Token::new(Number, "123.456".into(), Some(LoxType::Number(123.456)), 0)
         );
     }
 }
