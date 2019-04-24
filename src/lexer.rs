@@ -73,7 +73,7 @@ impl Lexer {
                         // Ignore rest of comment
                         loop {
                             match letters.next() {
-                                Some((_, ('\n', _))) => break,
+                                Some((_, (_, '\n'))) => break,
                                 _ => {}
                             }
                         }
@@ -266,5 +266,14 @@ mod test {
             &res[3],
             &Token::new(Number, "123.456".into(), Some(LoxType::Number(123.456)), 0)
         );
+    }
+
+    #[test]
+    fn test_comments() {
+        let example = "//HIII THEREEEEE\nvar";
+        let cur = Cursor::new(example);
+        let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+
+        assert_eq!(&res[0], &Token::new(Var, "var".into(), None, 1));
     }
 }

@@ -8,6 +8,7 @@ use lexer::Lexer;
 
 mod error;
 mod lexer;
+mod parser;
 mod token;
 mod types;
 
