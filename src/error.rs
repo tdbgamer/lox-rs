@@ -3,10 +3,10 @@ use std::io;
 use failure::Fail;
 use std::num::ParseFloatError;
 
-pub type TimResult<T> = Result<T, TimError>;
+pub type LoxResult<T> = Result<T, LoxError>;
 
 #[derive(Debug, Fail)]
-pub enum TimError {
+pub enum LoxError {
     #[fail(display = "IO Error: {}", _0)]
     IoError(#[cause] io::Error),
     #[fail(display = "Lexing Error: {}", _0)]
@@ -18,8 +18,7 @@ pub enum LexingError {
     #[fail(display = "Invalid Token '{}'", _0)]
     InvalidToken(char),
     #[fail(
-        display = "String literal unexpected ended on line number {}",
-        line_num
+        display = "String literal unexpected ended on line number {}", line_num
     )]
     UnexpectedEndStringLiteral { line_num: usize },
     #[fail(
@@ -33,14 +32,14 @@ pub enum LexingError {
     },
 }
 
-impl From<io::Error> for TimError {
+impl From<io::Error> for LoxError {
     fn from(err: io::Error) -> Self {
-        TimError::IoError(err)
+        LoxError::IoError(err)
     }
 }
 
-impl From<LexingError> for TimError {
+impl From<LexingError> for LoxError {
     fn from(err: LexingError) -> Self {
-        TimError::InnerLexingError(err)
+        LoxError::InnerLexingError(err)
     }
 }

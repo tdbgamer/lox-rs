@@ -4,7 +4,7 @@ use std::io::Read;
 use itertools::Itertools;
 
 use crate::error::LexingError;
-use crate::error::TimResult;
+use crate::error::LoxResult;
 use crate::token::Token;
 use crate::token::TokenType;
 use crate::token::TokenType::*;
@@ -14,7 +14,7 @@ use crate::types::LoxType;
 pub struct Lexer {}
 
 impl Lexer {
-    pub fn scan_tokens(&self, mut input: Box<Read>) -> TimResult<Vec<Token>> {
+    pub fn scan_tokens(&self, mut input: Box<Read>) -> LoxResult<Vec<Token>> {
         let mut tokens: Vec<Token> = Vec::new();
 
         {
@@ -128,7 +128,7 @@ fn handle_ident_or_keyword(
     letters: &mut impl Iterator<Item = (usize, (char, char))>,
     make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
     lett: char,
-) -> TimResult<()> {
+) -> LoxResult<()> {
     let mut identifier_lit = vec![lett];
     loop {
         let next_letter: Option<(usize, (char, char))> = letters.next();
@@ -175,7 +175,7 @@ fn handle_number(
     make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
     lett: char,
     line_num: usize,
-) -> TimResult<()> {
+) -> LoxResult<()> {
     let mut num_lit: Vec<char> = vec![lett];
     loop {
         let next_letter: Option<(usize, (char, char))> = letters.next();
@@ -202,7 +202,7 @@ fn make_number(
     num_lit: &[char],
     make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
     line_num: usize,
-) -> TimResult<Token> {
+) -> LoxResult<Token> {
     let num: String = num_lit.iter().collect();
     Ok(make_token(
         Number,

@@ -3,7 +3,7 @@ use std::io::{self, BufReader, Read};
 
 use structopt::StructOpt;
 
-use error::TimResult;
+use error::LoxResult;
 use lexer::Lexer;
 
 mod error;
@@ -18,14 +18,14 @@ struct Cli {
     input: Option<String>,
 }
 
-fn open_file(input_file: &str) -> TimResult<Box<Read>> {
+fn open_file(input_file: &str) -> LoxResult<Box<Read>> {
     match input_file {
         "-" => Ok(Box::new(BufReader::new(io::stdin()))),
         filename => Ok(Box::new(BufReader::new(File::open(filename)?))),
     }
 }
 
-fn main() -> TimResult<()> {
+fn main() -> LoxResult<()> {
     let args: Cli = Cli::from_args();
     let input_file = args.input.unwrap_or("-".into());
     let file = open_file(&input_file)?;
