@@ -122,6 +122,7 @@ impl Lexer {
     }
 }
 
+#[inline]
 fn handle_ident_or_keyword(
     tokens: &mut Vec<Token>,
     letters: &mut impl Iterator<Item = (usize, (char, char))>,
@@ -148,6 +149,7 @@ fn handle_ident_or_keyword(
     Ok(())
 }
 
+#[inline]
 fn make_ident_or_keyword(
     identifier_lit: &[char],
     make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
@@ -166,7 +168,7 @@ fn make_ident_or_keyword(
     }
 }
 
-#[allow(dead_code)]
+#[inline]
 fn handle_number(
     tokens: &mut Vec<Token>,
     letters: &mut impl Iterator<Item = (usize, (char, char))>,
@@ -195,6 +197,7 @@ fn handle_number(
     Ok(())
 }
 
+#[inline]
 fn make_number(
     num_lit: &[char],
     make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
