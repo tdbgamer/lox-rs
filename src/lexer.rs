@@ -10,7 +10,6 @@ use crate::token::TokenType;
 use crate::token::TokenType::*;
 use crate::types::LoxType;
 
-
 #[derive(Default)]
 pub struct Lexer {}
 
@@ -110,40 +109,7 @@ impl Lexer {
                         }
                     }
                     (first @ '0'...'9', _) => {
-                        let mut num_lit: Vec<char> = vec![first];
-                        loop {
-                            let next_letter: Option<(usize, (char, char))> = letters.next();
-                            match next_letter {
-                                Some((_idx, (chr, next)))
-                                    if !(next.is_ascii_digit() || next == '.') =>
-                                {
-                                    num_lit.push(chr);
-                                    let num: String = num_lit.iter().collect();
-                                    tokens.push(make_token(
-                                        Number,
-                                        num_lit.len(),
-                                        Some(LoxType::Number(num.parse().map_err(|err| {
-                                            LexingError::InvalidDigit { line_num, err }
-                                        })?)),
-                                    ));
-                                    break;
-                                }
-                                Some((_idx, (chr, _))) => {
-                                    num_lit.push(chr);
-                                }
-                                None => {
-                                    let num: String = num_lit.iter().collect();
-                                    tokens.push(make_token(
-                                        Number,
-                                        num_lit.len(),
-                                        Some(LoxType::Number(num.parse().map_err(|err| {
-                                            LexingError::InvalidDigit { line_num, err }
-                                        })?)),
-                                    ));
-                                    break;
-                                }
-                            }
-                        }
+                        handle_number(&mut tokens, &mut letters, make_token, first, line_num)?
                     }
                     (lett @ 'a'...'z', _) | (lett @ 'A'...'Z', _) => {
                         handle_ident_or_keyword(&mut tokens, &mut letters, make_token, lett)?
@@ -198,6 +164,50 @@ fn make_ident_or_keyword(
             Some(LoxType::Identifier(identifier)),
         )
     }
+}
+
+#[allow(dead_code)]
+fn handle_number(
+    tokens: &mut Vec<Token>,
+    letters: &mut impl Iterator<Item = (usize, (char, char))>,
+    make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
+    lett: char,
+    line_num: usize,
+) -> TimResult<()> {
+    let mut num_lit: Vec<char> = vec![lett];
+    loop {
+        let next_letter: Option<(usize, (char, char))> = letters.next();
+        match next_letter {
+            Some((_idx, (chr, next))) if !(next.is_ascii_digit() || next == '.') => {
+                num_lit.push(chr);
+                tokens.push(make_number(&num_lit, make_token, line_num)?);
+                break;
+            }
+            Some((_idx, (chr, _))) => {
+                num_lit.push(chr);
+            }
+            None => {
+                tokens.push(make_number(&num_lit, make_token, line_num)?);
+                break;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn make_number(
+    num_lit: &[char],
+    make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
+    line_num: usize,
+) -> TimResult<Token> {
+    let num: String = num_lit.iter().collect();
+    Ok(make_token(
+        Number,
+        num_lit.len(),
+        Some(LoxType::Number(num.parse().map_err(|err| {
+            LexingError::InvalidDigit { line_num, err }
+        })?)),
+    ))
 }
 
 #[cfg(test)]
