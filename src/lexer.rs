@@ -9,7 +9,7 @@ use crate::token::Token;
 use crate::token::TokenType;
 use crate::token::TokenType::*;
 use crate::types::LoxType;
-use std::collections::HashMap;
+
 
 #[derive(Default)]
 pub struct Lexer {}
