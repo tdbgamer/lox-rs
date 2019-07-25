@@ -180,7 +180,7 @@ fn handle_number(
     loop {
         let next_letter: Option<(usize, (char, char))> = letters.next();
         match next_letter {
-            Some((_idx, (chr, ' '))) => {
+            Some((_idx, (chr, next))) if next.is_whitespace() || next == ';' => {
                 num_lit.push(chr);
                 tokens.push(make_number(&num_lit, make_token, line_num)?);
                 break;
@@ -220,6 +220,21 @@ mod test {
     use crate::error::LoxError;
 
     use super::*;
+
+    #[test]
+    fn test_good_numbers() {
+        [
+            "var foo = 123;",
+            "var foo = 123\n\n\n",
+            "var foo = 123",
+        ].iter().map(Cursor::new).for_each(|cur| {
+        let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+        assert_eq!(
+            &res[3],
+            &Token::new(Number, "123".into(), Some(LoxType::Number(123f64)), 0)
+        );
+    })
+    }
 
     #[test]
     fn test_invalid_number() {
