@@ -18,7 +18,8 @@ pub enum LexingError {
     #[fail(display = "Invalid Token '{}'", _0)]
     InvalidToken(char),
     #[fail(
-        display = "String literal unexpected ended on line number {}", line_num
+        display = "String literal unexpected ended on line number {}",
+        line_num
     )]
     UnexpectedEndStringLiteral { line_num: usize },
     #[fail(

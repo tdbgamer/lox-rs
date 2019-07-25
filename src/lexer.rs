@@ -223,17 +223,16 @@ mod test {
 
     #[test]
     fn test_good_numbers() {
-        [
-            "var foo = 123;",
-            "var foo = 123\n\n\n",
-            "var foo = 123",
-        ].iter().map(Cursor::new).for_each(|cur| {
-        let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
-        assert_eq!(
-            &res[3],
-            &Token::new(Number, "123".into(), Some(LoxType::Number(123f64)), 0)
-        );
-    })
+        ["var foo = 123;", "var foo = 123\n\n\n", "var foo = 123"]
+            .iter()
+            .map(Cursor::new)
+            .for_each(|cur| {
+                let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+                assert_eq!(
+                    &res[3],
+                    &Token::new(Number, "123".into(), Some(LoxType::Number(123f64)), 0)
+                );
+            })
     }
 
     #[test]
@@ -242,8 +241,11 @@ mod test {
         let cur = Cursor::new(example);
         let res = Lexer::default().scan_tokens(Box::new(cur));
         match res.expect_err("Should have failed to parse invalid number") {
-            LoxError::InnerLexingError(LexingError::InvalidDigit { line_num: _, err: _ }) => {}
-            err => panic!("Wrong error type {:?}. Expected Invalid Digit.", err)
+            LoxError::InnerLexingError(LexingError::InvalidDigit {
+                line_num: _,
+                err: _,
+            }) => {}
+            err => panic!("Wrong error type {:?}. Expected Invalid Digit.", err),
         }
     }
 
