@@ -14,7 +14,7 @@ use crate::types::LoxType;
 pub struct Lexer {}
 
 impl Lexer {
-    pub fn scan_tokens(&self, mut input: Box<Read>) -> LoxResult<Vec<Token>> {
+    pub fn scan_tokens(&self, mut input: Box<dyn Read>) -> LoxResult<Vec<Token>> {
         let mut tokens: Vec<Token> = Vec::new();
 
         {
@@ -180,7 +180,7 @@ fn handle_number(
     loop {
         let next_letter: Option<(usize, (char, char))> = letters.next();
         match next_letter {
-            Some((_idx, (chr, next))) if !(next.is_ascii_digit() || next == '.') => {
+            Some((_idx, (chr, ' '))) => {
                 num_lit.push(chr);
                 tokens.push(make_number(&num_lit, make_token, line_num)?);
                 break;
@@ -217,7 +217,20 @@ fn make_number(
 mod test {
     use std::io::Cursor;
 
+    use crate::error::LoxError;
+
     use super::*;
+
+    #[test]
+    fn test_invalid_number() {
+        let example = r#"var foo = 123f456"#;
+        let cur = Cursor::new(example);
+        let res = Lexer::default().scan_tokens(Box::new(cur));
+        match res.expect_err("Should have failed to parse invalid number") {
+            LoxError::InnerLexingError(LexingError::InvalidDigit { line_num: _, err: _ }) => {}
+            err => panic!("Wrong error type {:?}. Expected Invalid Digit.", err)
+        }
+    }
 
     #[test]
     fn test_string_double_eq_number() {
