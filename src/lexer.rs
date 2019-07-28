@@ -65,9 +65,8 @@ impl Lexer {
                     ('/', '/') => {
                         // Ignore rest of comment
                         loop {
-                            match letters.next() {
-                                Some((_, (_, '\n'))) => break,
-                                _ => {}
+                            if let Some((_, (_, '\n'))) = letters.next() {
+                                break;
                             }
                         }
                     }
@@ -169,7 +168,7 @@ fn handle_number(
     loop {
         let next_letter: Option<(usize, (char, char))> = letters.next();
         match next_letter {
-            Some((_idx, (chr, _))) if !chr.is_numeric() && chr != '.' => {
+            Some((_idx, (chr, _))) if chr.is_whitespace() || chr == ';' => {
                 tokens.push(make_number(&num_lit, make_token, line_num)?);
                 break;
             }
@@ -197,6 +196,7 @@ fn make_number(
     line_num: usize,
 ) -> LoxResult<Token> {
     let num: String = num_lit.iter().collect();
+    println!("make_number: {:?}", num);
     Ok(make_token(
         Number(
             num.parse()

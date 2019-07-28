@@ -3,9 +3,9 @@ use std::io::{self, BufReader, Read};
 
 use structopt::StructOpt;
 
+use crate::parser::Parser;
 use error::LoxResult;
 use lexer::Lexer;
-use crate::parser::Parser;
 
 mod ast;
 mod error;
@@ -29,7 +29,7 @@ fn open_file(input_file: &str) -> LoxResult<Box<dyn Read>> {
 
 fn main() -> LoxResult<()> {
     let args: Cli = Cli::from_args();
-    let input_file = args.input.unwrap_or("-".into());
+    let input_file = args.input.unwrap_or_else(|| "-".into());
     let file = open_file(&input_file)?;
     let lexer: Lexer = Lexer::default();
     let tokens = lexer.scan_tokens(file)?;
