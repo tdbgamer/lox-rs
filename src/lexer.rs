@@ -100,8 +100,8 @@ impl Lexer {
                             }
                         }
                     }
-                    (first @ '0'...'9', _) => {
-                        handle_number(&mut tokens, &mut letters, make_token, first, line_num)?
+                    (first @ '0'...'9', second) => {
+                        handle_number(&mut tokens, &mut letters, make_token, (idx, (first, second)), line_num)?
                     }
                     (lett @ 'a'...'z', _) | (lett @ 'A'...'Z', _) => {
                         handle_ident_or_keyword(&mut tokens, &mut letters, make_token, lett)?
@@ -161,18 +161,14 @@ fn handle_number(
     tokens: &mut Vec<Token>,
     letters: &mut impl Iterator<Item = (usize, (char, char))>,
     make_token: impl Fn(TokenType, usize) -> Token,
-    lett: char,
+    lett: (usize, (char, char)),
     line_num: usize,
 ) -> LoxResult<()> {
-    let mut num_lit: Vec<char> = vec![lett];
+    let mut num_lit: Vec<char> = vec![];
+    let mut next_letter: Option<(usize, (char, char))> = Some(lett);
     loop {
-        let next_letter: Option<(usize, (char, char))> = letters.next();
         match next_letter {
-            Some((_idx, (chr, _))) if chr.is_whitespace() || chr == ';' => {
-                tokens.push(make_number(&num_lit, make_token, line_num)?);
-                break;
-            }
-            Some((_idx, (chr, next))) if next.is_whitespace() || next == ';' => {
+            Some((_idx, (chr, next))) if !next.is_alphanumeric() && next != '.' => {
                 num_lit.push(chr);
                 tokens.push(make_number(&num_lit, make_token, line_num)?);
                 break;
@@ -185,6 +181,7 @@ fn handle_number(
                 break;
             }
         }
+        next_letter = letters.next()
     }
     Ok(())
 }
@@ -196,7 +193,6 @@ fn make_number(
     line_num: usize,
 ) -> LoxResult<Token> {
     let num: String = num_lit.iter().collect();
-    println!("make_number: {:?}", num);
     Ok(make_token(
         Number(
             num.parse()
