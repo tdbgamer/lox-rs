@@ -8,7 +8,6 @@ use crate::error::LoxResult;
 use crate::token::Token;
 use crate::token::TokenType;
 use crate::token::TokenType::*;
-use crate::types::LoxType;
 
 #[derive(Default)]
 pub struct Lexer {}
@@ -29,45 +28,40 @@ impl Lexer {
                 .tuple_windows()
                 .enumerate();
             while let Some((idx, letter)) = letters.next() {
-                let make_token = |tt: TokenType, slice_size: usize, literal: Option<LoxType>| {
-                    Token::new(
-                        tt,
-                        text[idx..idx + slice_size].to_string(),
-                        literal,
-                        line_num as u32,
-                    )
+                let make_token = |tt: TokenType, slice_size: usize| {
+                    Token::new(tt, text[idx..idx + slice_size].to_string(), line_num as u32)
                 };
                 match letter {
-                    ('(', _) => tokens.push(make_token(LeftParen, 1, None)),
-                    (')', _) => tokens.push(make_token(RightParen, 1, None)),
-                    ('{', _) => tokens.push(make_token(LeftBrace, 1, None)),
-                    ('}', _) => tokens.push(make_token(RightBrace, 1, None)),
-                    (',', _) => tokens.push(make_token(Comma, 1, None)),
-                    ('.', _) => tokens.push(make_token(Dot, 1, None)),
-                    ('-', _) => tokens.push(make_token(Minus, 1, None)),
-                    ('+', _) => tokens.push(make_token(Plus, 1, None)),
-                    (';', _) => tokens.push(make_token(Semicolon, 1, None)),
-                    ('*', _) => tokens.push(make_token(Star, 1, None)),
+                    ('(', _) => tokens.push(make_token(LeftParen, 1)),
+                    (')', _) => tokens.push(make_token(RightParen, 1)),
+                    ('{', _) => tokens.push(make_token(LeftBrace, 1)),
+                    ('}', _) => tokens.push(make_token(RightBrace, 1)),
+                    (',', _) => tokens.push(make_token(Comma, 1)),
+                    ('.', _) => tokens.push(make_token(Dot, 1)),
+                    ('-', _) => tokens.push(make_token(Minus, 1)),
+                    ('+', _) => tokens.push(make_token(Plus, 1)),
+                    (';', _) => tokens.push(make_token(Semicolon, 1)),
+                    ('*', _) => tokens.push(make_token(Star, 1)),
                     ('!', '=') => {
-                        tokens.push(make_token(BangEqual, 2, None));
+                        tokens.push(make_token(BangEqual, 2));
                         letters.next();
                     }
-                    ('!', _) => tokens.push(make_token(Bang, 1, None)),
+                    ('!', _) => tokens.push(make_token(Bang, 1)),
                     ('=', '=') => {
-                        tokens.push(make_token(EqualEqual, 2, None));
+                        tokens.push(make_token(EqualEqual, 2));
                         letters.next();
                     }
-                    ('=', _) => tokens.push(make_token(Equal, 1, None)),
+                    ('=', _) => tokens.push(make_token(Equal, 1)),
                     ('<', '=') => {
-                        tokens.push(make_token(LessEqual, 2, None));
+                        tokens.push(make_token(LessEqual, 2));
                         letters.next();
                     }
-                    ('<', _) => tokens.push(make_token(Less, 1, None)),
+                    ('<', _) => tokens.push(make_token(Less, 1)),
                     ('>', '=') => {
-                        tokens.push(make_token(GreaterEqual, 2, None));
+                        tokens.push(make_token(GreaterEqual, 2));
                         letters.next();
                     }
-                    ('>', _) => tokens.push(make_token(Greater, 1, None)),
+                    ('>', _) => tokens.push(make_token(Greater, 1)),
                     ('/', '/') => {
                         // Ignore rest of comment
                         loop {
@@ -77,7 +71,7 @@ impl Lexer {
                             }
                         }
                     }
-                    ('/', _) => tokens.push(make_token(Slash, 1, None)),
+                    ('/', _) => tokens.push(make_token(Slash, 1)),
                     (' ', _) => {}
                     ('\r', _) => {}
                     ('\t', _) => {}
@@ -91,9 +85,8 @@ impl Lexer {
                             match next_letter {
                                 Some((_idx, ('"', _))) => {
                                     tokens.push(make_token(
-                                        String_,
+                                        String_(string_lit.iter().collect()),
                                         string_lit.len() + 2,
-                                        Some(LoxType::String_(string_lit.iter().collect())),
                                     ));
                                     break;
                                 }
@@ -126,7 +119,7 @@ impl Lexer {
 fn handle_ident_or_keyword(
     tokens: &mut Vec<Token>,
     letters: &mut impl Iterator<Item = (usize, (char, char))>,
-    make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
+    make_token: impl Fn(TokenType, usize) -> Token,
     lett: char,
 ) -> LoxResult<()> {
     let mut identifier_lit = vec![lett];
@@ -152,19 +145,15 @@ fn handle_ident_or_keyword(
 #[inline]
 fn make_ident_or_keyword(
     identifier_lit: &[char],
-    make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
+    make_token: impl Fn(TokenType, usize) -> Token,
 ) -> Token {
     use crate::token::RESERVED_TOKENS;
 
     let identifier: String = identifier_lit.iter().collect();
     if let Some(reserved) = RESERVED_TOKENS.get(identifier.as_str()) {
-        make_token(reserved.clone(), identifier_lit.len(), None)
+        make_token(reserved.clone(), identifier_lit.len())
     } else {
-        make_token(
-            Identifier,
-            identifier_lit.len(),
-            Some(LoxType::Identifier(identifier)),
-        )
+        make_token(Identifier(identifier), identifier_lit.len())
     }
 }
 
@@ -172,7 +161,7 @@ fn make_ident_or_keyword(
 fn handle_number(
     tokens: &mut Vec<Token>,
     letters: &mut impl Iterator<Item = (usize, (char, char))>,
-    make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
+    make_token: impl Fn(TokenType, usize) -> Token,
     lett: char,
     line_num: usize,
 ) -> LoxResult<()> {
@@ -180,6 +169,10 @@ fn handle_number(
     loop {
         let next_letter: Option<(usize, (char, char))> = letters.next();
         match next_letter {
+            Some((_idx, (chr, _))) if !chr.is_numeric() && chr != '.' => {
+                tokens.push(make_number(&num_lit, make_token, line_num)?);
+                break;
+            }
             Some((_idx, (chr, next))) if next.is_whitespace() || next == ';' => {
                 num_lit.push(chr);
                 tokens.push(make_number(&num_lit, make_token, line_num)?);
@@ -200,16 +193,16 @@ fn handle_number(
 #[inline]
 fn make_number(
     num_lit: &[char],
-    make_token: impl Fn(TokenType, usize, Option<LoxType>) -> Token,
+    make_token: impl Fn(TokenType, usize) -> Token,
     line_num: usize,
 ) -> LoxResult<Token> {
     let num: String = num_lit.iter().collect();
     Ok(make_token(
-        Number,
+        Number(
+            num.parse()
+                .map_err(|err| LexingError::InvalidDigit { line_num, err })?,
+        ),
         num_lit.len(),
-        Some(LoxType::Number(num.parse().map_err(|err| {
-            LexingError::InvalidDigit { line_num, err }
-        })?)),
     ))
 }
 
@@ -228,10 +221,7 @@ mod test {
             .map(Cursor::new)
             .for_each(|cur| {
                 let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
-                assert_eq!(
-                    &res[3],
-                    &Token::new(Number, "123".into(), Some(LoxType::Number(123f64)), 0)
-                );
+                assert_eq!(&res[3], &Token::new(Number(123f64), "123".into(), 0));
             })
     }
 
@@ -257,20 +247,12 @@ mod test {
 
         assert_eq!(
             &res[0],
-            &Token::new(
-                String_,
-                r#""asdf""#.into(),
-                Some(LoxType::String_("asdf".into())),
-                0
-            )
+            &Token::new(String_("asdf".into()), r#""asdf""#.into(), 0)
         );
 
-        assert_eq!(&res[1], &Token::new(EqualEqual, "==".into(), None, 0));
+        assert_eq!(&res[1], &Token::new(EqualEqual, "==".into(), 0));
 
-        assert_eq!(
-            &res[2],
-            &Token::new(Number, "123.456".into(), Some(LoxType::Number(123.456)), 0)
-        );
+        assert_eq!(&res[2], &Token::new(Number(123.456), "123.456".into(), 0));
     }
 
     #[test]
@@ -279,10 +261,7 @@ mod test {
         let cur = Cursor::new(example);
         let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
 
-        assert_eq!(
-            &res[0],
-            &Token::new(Number, "123.456".into(), Some(LoxType::Number(123.456)), 1)
-        );
+        assert_eq!(&res[0], &Token::new(Number(123.456), "123.456".into(), 1));
     }
 
     #[test]
@@ -291,24 +270,16 @@ mod test {
         let cur = Cursor::new(example);
         let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
 
-        assert_eq!(&res[0], &Token::new(Var, "var".into(), None, 0));
+        assert_eq!(&res[0], &Token::new(Var, "var".into(), 0));
 
         assert_eq!(
             &res[1],
-            &Token::new(
-                Identifier,
-                "foobar".into(),
-                Some(LoxType::Identifier("foobar".into())),
-                0
-            )
+            &Token::new(Identifier("foobar".into()), "foobar".into(), 0)
         );
 
-        assert_eq!(&res[2], &Token::new(Equal, "=".into(), None, 0));
+        assert_eq!(&res[2], &Token::new(Equal, "=".into(), 0));
 
-        assert_eq!(
-            &res[3],
-            &Token::new(Number, "123.456".into(), Some(LoxType::Number(123.456)), 0)
-        );
+        assert_eq!(&res[3], &Token::new(Number(123.456), "123.456".into(), 0));
     }
 
     #[test]
@@ -317,6 +288,6 @@ mod test {
         let cur = Cursor::new(example);
         let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
 
-        assert_eq!(&res[0], &Token::new(Var, "var".into(), None, 1));
+        assert_eq!(&res[0], &Token::new(Var, "var".into(), 1));
     }
 }

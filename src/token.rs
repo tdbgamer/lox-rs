@@ -1,28 +1,19 @@
 use lazy_static::lazy_static;
 
-use crate::types::LoxType;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    pub literal: Option<LoxType>,
     pub line: u32,
 }
 
 impl Token {
-    pub fn new(
-        token_type: TokenType,
-        lexeme: String,
-        literal: impl Into<Option<LoxType>>,
-        line: u32,
-    ) -> Token {
-        let literal = literal.into();
+    pub fn new(token_type: TokenType, lexeme: String, line: u32) -> Token {
         Token {
             token_type,
             lexeme,
-            literal,
             line,
         }
     }
@@ -55,9 +46,9 @@ pub enum TokenType {
     LessEqual,
 
     // Literals.
-    Identifier,
-    String_,
-    Number,
+    Identifier(String),
+    String_(String),
+    Number(f64),
 
     // Keywords.
     And,
