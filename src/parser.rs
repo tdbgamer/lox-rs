@@ -61,7 +61,7 @@ fn primary(tokens: &[Token]) -> LoxResult<(Expr, &[Token])> {
     let token = tokens.first().expect("First token didn't exist");
     match &token.token_type {
         TokenType::Identifier(str_val) => Ok((
-            Expr::Literal(LoxType::String_(str_val.clone())),
+            Expr::Literal(LoxType::Identifier(str_val.clone())),
             &tokens[1..],
         )),
         TokenType::Number(num) => Ok((Expr::Literal(LoxType::Number(*num)), &tokens[1..])),

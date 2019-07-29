@@ -1,5 +1,4 @@
 use std;
-use std::io::Read;
 
 use itertools::Itertools;
 
@@ -13,13 +12,10 @@ use crate::token::TokenType::*;
 pub struct Lexer {}
 
 impl Lexer {
-    pub fn scan_tokens(&self, mut input: Box<dyn Read>) -> LoxResult<Vec<Token>> {
+    pub fn scan_tokens(&self, text: &str) -> LoxResult<Vec<Token>> {
         let mut tokens: Vec<Token> = Vec::new();
 
         {
-            let mut text = String::new();
-            input.read_to_string(&mut text)?;
-
             let mut line_num: usize = 0;
 
             let mut letters = text
@@ -100,9 +96,13 @@ impl Lexer {
                             }
                         }
                     }
-                    (first @ '0'...'9', second) => {
-                        handle_number(&mut tokens, &mut letters, make_token, (idx, (first, second)), line_num)?
-                    }
+                    (first @ '0'...'9', second) => handle_number(
+                        &mut tokens,
+                        &mut letters,
+                        make_token,
+                        (idx, (first, second)),
+                        line_num,
+                    )?,
                     (lett @ 'a'...'z', _) | (lett @ 'A'...'Z', _) => {
                         handle_ident_or_keyword(&mut tokens, &mut letters, make_token, lett)?
                     }
@@ -214,9 +214,8 @@ mod test {
     fn test_good_numbers() {
         ["var foo = 123;", "var foo = 123\n\n\n", "var foo = 123"]
             .iter()
-            .map(Cursor::new)
-            .for_each(|cur| {
-                let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+            .for_each(|&text| {
+                let res = Lexer::default().scan_tokens(text).unwrap();
                 assert_eq!(&res[3], &Token::new(Number(123f64), "123".into(), 0));
             })
     }
@@ -224,8 +223,7 @@ mod test {
     #[test]
     fn test_invalid_number() {
         let example = r#"var foo = 123f456"#;
-        let cur = Cursor::new(example);
-        let res = Lexer::default().scan_tokens(Box::new(cur));
+        let res = Lexer::default().scan_tokens(example);
         match res.expect_err("Should have failed to parse invalid number") {
             LoxError::InnerLexingError(LexingError::InvalidDigit {
                 line_num: _,
@@ -238,8 +236,7 @@ mod test {
     #[test]
     fn test_string_double_eq_number() {
         let example = r#""asdf" == 123.456"#;
-        let cur = Cursor::new(example);
-        let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+        let res = Lexer::default().scan_tokens(example).unwrap();
 
         assert_eq!(
             &res[0],
@@ -255,7 +252,7 @@ mod test {
     fn test_line_number() {
         let example = "\n123.456";
         let cur = Cursor::new(example);
-        let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+        let res = Lexer::default().scan_tokens(example).unwrap();
 
         assert_eq!(&res[0], &Token::new(Number(123.456), "123.456".into(), 1));
     }
@@ -263,8 +260,7 @@ mod test {
     #[test]
     fn test_identifier() {
         let example = "var foobar = 123.456";
-        let cur = Cursor::new(example);
-        let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+        let res = Lexer::default().scan_tokens(example).unwrap();
 
         assert_eq!(&res[0], &Token::new(Var, "var".into(), 0));
 
@@ -281,8 +277,7 @@ mod test {
     #[test]
     fn test_comments() {
         let example = "//HIII THEREEEEE\nvar";
-        let cur = Cursor::new(example);
-        let res = Lexer::default().scan_tokens(Box::new(cur)).unwrap();
+        let res = Lexer::default().scan_tokens(example).unwrap();
 
         assert_eq!(&res[0], &Token::new(Var, "var".into(), 1));
     }
