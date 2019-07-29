@@ -1,19 +1,22 @@
 use std::fs::File;
+use std::io::stdout;
 use std::io::{self, BufRead, BufReader, Write};
 
 use structopt::StructOpt;
 
-use crate::parser::Parser;
 use crate::ast_interpreter::AstIntepreter;
+use crate::interpreter::LoxInterpreter;
+use crate::parser::parse_tokens;
 use error::LoxResult;
-use lexer::Lexer;
+use lexer::scan_tokens;
 
 mod ast;
+mod ast_interpreter;
 mod error;
+mod interpreter;
 mod lexer;
 mod parser;
 mod token;
-mod ast_interpreter;
 mod types;
 
 #[derive(StructOpt)]
@@ -29,9 +32,8 @@ fn open_file(input_file: &str) -> LoxResult<Box<dyn BufRead>> {
     }
 }
 
-use std::io::stdout;
 fn main() -> LoxResult<()> {
-    let vm = AstIntepreter;
+    let vm = AstIntepreter::default();
     let args: Cli = Cli::from_args();
     let input_file = args.input.unwrap_or_else(|| "-".into());
     let mut file = open_file(&input_file)?;
@@ -40,10 +42,6 @@ fn main() -> LoxResult<()> {
         stdout().flush()?;
         let mut input_str = String::new();
         file.read_line(&mut input_str)?;
-        let lexer: Lexer = Lexer::default();
-        let tokens = lexer.scan_tokens(&input_str)?;
-        let parser = Parser;
-        let tree = parser.parse_tokens(&tokens)?;
-        println!("{:#?}", vm.eval(&tree));
+        println!("{:#?}", vm.eval(input_str.as_str())?);
     }
 }

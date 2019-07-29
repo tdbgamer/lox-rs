@@ -1,5 +1,3 @@
-use std;
-
 use itertools::Itertools;
 
 use crate::error::LexingError;
@@ -8,110 +6,103 @@ use crate::token::Token;
 use crate::token::TokenType;
 use crate::token::TokenType::*;
 
-#[derive(Default)]
-pub struct Lexer {}
+pub fn scan_tokens(text: &str) -> LoxResult<Vec<Token>> {
+    let mut tokens: Vec<Token> = Vec::new();
 
-impl Lexer {
-    pub fn scan_tokens(&self, text: &str) -> LoxResult<Vec<Token>> {
-        let mut tokens: Vec<Token> = Vec::new();
+    {
+        let mut line_num: usize = 0;
 
-        {
-            let mut line_num: usize = 0;
-
-            let mut letters = text
-                .chars()
-                .chain(vec!['\0'].into_iter())
-                .tuple_windows()
-                .enumerate();
-            while let Some((idx, letter)) = letters.next() {
-                let make_token = |tt: TokenType, slice_size: usize| {
-                    Token::new(tt, text[idx..idx + slice_size].to_string(), line_num as u32)
-                };
-                match letter {
-                    ('(', _) => tokens.push(make_token(LeftParen, 1)),
-                    (')', _) => tokens.push(make_token(RightParen, 1)),
-                    ('{', _) => tokens.push(make_token(LeftBrace, 1)),
-                    ('}', _) => tokens.push(make_token(RightBrace, 1)),
-                    (',', _) => tokens.push(make_token(Comma, 1)),
-                    ('.', _) => tokens.push(make_token(Dot, 1)),
-                    ('-', _) => tokens.push(make_token(Minus, 1)),
-                    ('+', _) => tokens.push(make_token(Plus, 1)),
-                    (';', _) => tokens.push(make_token(Semicolon, 1)),
-                    ('*', _) => tokens.push(make_token(Star, 1)),
-                    ('!', '=') => {
-                        tokens.push(make_token(BangEqual, 2));
-                        letters.next();
+        let mut letters = text
+            .chars()
+            .chain(vec!['\0'].into_iter())
+            .tuple_windows()
+            .enumerate();
+        while let Some((idx, letter)) = letters.next() {
+            let make_token = |tt: TokenType, slice_size: usize| {
+                Token::new(tt, text[idx..idx + slice_size].to_string(), line_num as u32)
+            };
+            match letter {
+                ('(', _) => tokens.push(make_token(LeftParen, 1)),
+                (')', _) => tokens.push(make_token(RightParen, 1)),
+                ('{', _) => tokens.push(make_token(LeftBrace, 1)),
+                ('}', _) => tokens.push(make_token(RightBrace, 1)),
+                (',', _) => tokens.push(make_token(Comma, 1)),
+                ('.', _) => tokens.push(make_token(Dot, 1)),
+                ('-', _) => tokens.push(make_token(Minus, 1)),
+                ('+', _) => tokens.push(make_token(Plus, 1)),
+                (';', _) => tokens.push(make_token(Semicolon, 1)),
+                ('*', _) => tokens.push(make_token(Star, 1)),
+                ('!', '=') => {
+                    tokens.push(make_token(BangEqual, 2));
+                    letters.next();
+                }
+                ('!', _) => tokens.push(make_token(Bang, 1)),
+                ('=', '=') => {
+                    tokens.push(make_token(EqualEqual, 2));
+                    letters.next();
+                }
+                ('=', _) => tokens.push(make_token(Equal, 1)),
+                ('<', '=') => {
+                    tokens.push(make_token(LessEqual, 2));
+                    letters.next();
+                }
+                ('<', _) => tokens.push(make_token(Less, 1)),
+                ('>', '=') => {
+                    tokens.push(make_token(GreaterEqual, 2));
+                    letters.next();
+                }
+                ('>', _) => tokens.push(make_token(Greater, 1)),
+                ('/', '/') => {
+                    // Ignore rest of comment
+                    loop {
+                        if let Some((_, (_, '\n'))) = letters.next() {
+                            break;
+                        }
                     }
-                    ('!', _) => tokens.push(make_token(Bang, 1)),
-                    ('=', '=') => {
-                        tokens.push(make_token(EqualEqual, 2));
-                        letters.next();
-                    }
-                    ('=', _) => tokens.push(make_token(Equal, 1)),
-                    ('<', '=') => {
-                        tokens.push(make_token(LessEqual, 2));
-                        letters.next();
-                    }
-                    ('<', _) => tokens.push(make_token(Less, 1)),
-                    ('>', '=') => {
-                        tokens.push(make_token(GreaterEqual, 2));
-                        letters.next();
-                    }
-                    ('>', _) => tokens.push(make_token(Greater, 1)),
-                    ('/', '/') => {
-                        // Ignore rest of comment
-                        loop {
-                            if let Some((_, (_, '\n'))) = letters.next() {
+                }
+                ('/', _) => tokens.push(make_token(Slash, 1)),
+                (' ', _) => {}
+                ('\r', _) => {}
+                ('\t', _) => {}
+                ('\n', _) => {
+                    line_num += 1;
+                }
+                ('"', _) => {
+                    let mut string_lit: Vec<char> = Vec::new();
+                    loop {
+                        let next_letter = letters.next();
+                        match next_letter {
+                            Some((_idx, ('"', _))) => {
+                                tokens.push(make_token(
+                                    String_(string_lit.iter().collect()),
+                                    string_lit.len() + 2,
+                                ));
                                 break;
                             }
-                        }
-                    }
-                    ('/', _) => tokens.push(make_token(Slash, 1)),
-                    (' ', _) => {}
-                    ('\r', _) => {}
-                    ('\t', _) => {}
-                    ('\n', _) => {
-                        line_num += 1;
-                    }
-                    ('"', _) => {
-                        let mut string_lit: Vec<char> = Vec::new();
-                        loop {
-                            let next_letter = letters.next();
-                            match next_letter {
-                                Some((_idx, ('"', _))) => {
-                                    tokens.push(make_token(
-                                        String_(string_lit.iter().collect()),
-                                        string_lit.len() + 2,
-                                    ));
-                                    break;
-                                }
-                                Some((_idx, (chr, _))) => {
-                                    string_lit.push(chr);
-                                }
-                                None => {
-                                    return Err(LexingError::UnexpectedEndStringLiteral {
-                                        line_num,
-                                    })?
-                                }
+                            Some((_idx, (chr, _))) => {
+                                string_lit.push(chr);
+                            }
+                            None => {
+                                return Err(LexingError::UnexpectedEndStringLiteral { line_num })?
                             }
                         }
                     }
-                    (first @ '0'...'9', second) => handle_number(
-                        &mut tokens,
-                        &mut letters,
-                        make_token,
-                        (idx, (first, second)),
-                        line_num,
-                    )?,
-                    (lett @ 'a'...'z', _) | (lett @ 'A'...'Z', _) => {
-                        handle_ident_or_keyword(&mut tokens, &mut letters, make_token, lett)?
-                    }
-                    (first, _) => return Err(LexingError::InvalidToken(first))?,
                 }
+                (first @ '0'...'9', second) => handle_number(
+                    &mut tokens,
+                    &mut letters,
+                    make_token,
+                    (idx, (first, second)),
+                    line_num,
+                )?,
+                (lett @ 'a'...'z', _) | (lett @ 'A'...'Z', _) => {
+                    handle_ident_or_keyword(&mut tokens, &mut letters, make_token, lett)?
+                }
+                (first, _) => return Err(LexingError::InvalidToken(first))?,
             }
         }
-        Ok(tokens)
     }
+    Ok(tokens)
 }
 
 #[inline]
@@ -215,7 +206,7 @@ mod test {
         ["var foo = 123;", "var foo = 123\n\n\n", "var foo = 123"]
             .iter()
             .for_each(|&text| {
-                let res = Lexer::default().scan_tokens(text).unwrap();
+                let res = scan_tokens(text).unwrap();
                 assert_eq!(&res[3], &Token::new(Number(123f64), "123".into(), 0));
             })
     }
@@ -223,7 +214,7 @@ mod test {
     #[test]
     fn test_invalid_number() {
         let example = r#"var foo = 123f456"#;
-        let res = Lexer::default().scan_tokens(example);
+        let res = scan_tokens(example);
         match res.expect_err("Should have failed to parse invalid number") {
             LoxError::InnerLexingError(LexingError::InvalidDigit {
                 line_num: _,
@@ -236,7 +227,7 @@ mod test {
     #[test]
     fn test_string_double_eq_number() {
         let example = r#""asdf" == 123.456"#;
-        let res = Lexer::default().scan_tokens(example).unwrap();
+        let res = scan_tokens(example).unwrap();
 
         assert_eq!(
             &res[0],
@@ -251,8 +242,7 @@ mod test {
     #[test]
     fn test_line_number() {
         let example = "\n123.456";
-        let cur = Cursor::new(example);
-        let res = Lexer::default().scan_tokens(example).unwrap();
+        let res = scan_tokens(example).unwrap();
 
         assert_eq!(&res[0], &Token::new(Number(123.456), "123.456".into(), 1));
     }
@@ -260,7 +250,7 @@ mod test {
     #[test]
     fn test_identifier() {
         let example = "var foobar = 123.456";
-        let res = Lexer::default().scan_tokens(example).unwrap();
+        let res = scan_tokens(example).unwrap();
 
         assert_eq!(&res[0], &Token::new(Var, "var".into(), 0));
 
@@ -277,7 +267,7 @@ mod test {
     #[test]
     fn test_comments() {
         let example = "//HIII THEREEEEE\nvar";
-        let res = Lexer::default().scan_tokens(example).unwrap();
+        let res = scan_tokens(example).unwrap();
 
         assert_eq!(&res[0], &Token::new(Var, "var".into(), 1));
     }

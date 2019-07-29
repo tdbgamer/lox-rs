@@ -24,13 +24,8 @@ macro_rules! binary_rule {
             }
         }
 
-#[derive(Default)]
-pub struct Parser;
-
-impl Parser {
-    pub fn parse_tokens(&self, tokens: &[Token]) -> LoxResult<Expr> {
-        expression(tokens).map(|(expr, _)| expr)
-    }
+pub fn parse_tokens(tokens: &[Token]) -> LoxResult<Expr> {
+    expression(tokens).map(|(expr, _)| expr)
 }
 
 fn expression(tokens: &[Token]) -> LoxResult<(Expr, &[Token])> {
