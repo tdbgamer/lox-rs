@@ -1,17 +1,20 @@
 # Lox interpreter
 
-Currently only lexes syntax into tokens
+Currently lexes/parses simple expressions
 
 ## Usage
 
-```shell
-cargo run filename.lox
-```
-
-or from stdin
+Basic REPL implemented currently. Lots of regular cases are not handled yet and may panic
 
 ```shell
-cat | cargo run -- - <<EOF
-var foobar = "asdf"
-EOF
+cargo run
+
+...
+
+> 1 + 2
+Literal(
+    Number(
+        3.0,
+    ),
+)
 ```
