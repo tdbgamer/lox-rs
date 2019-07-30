@@ -5,6 +5,9 @@ use crate::lexer::scan_tokens;
 use crate::parser::parse_tokens;
 use crate::token::Token;
 use crate::types::LoxType;
+use std::collections::VecDeque;
+use crate::stack::Frame;
+use cons_list::ConsList;
 
 pub struct AstIntepreter<'a> {
     lexer: &'a dyn Fn(&str) -> LoxResult<Vec<Token>>,
@@ -18,27 +21,13 @@ impl<'a> AstIntepreter<'a> {
     ) -> AstIntepreter<'a> {
         AstIntepreter { lexer, parser }
     }
-}
 
-impl Default for AstIntepreter<'_> {
-    fn default() -> Self {
-        Self::new(&scan_tokens, &parse_tokens)
-    }
-}
-
-impl LoxInterpreter<&str> for AstIntepreter<'_> {
-    fn eval(&self, input: &str) -> LoxResult<Expr> {
-        self.eval(&(self.parser)((self.lexer)(input)?.as_ref())?)
-    }
-}
-
-impl LoxInterpreter<&Expr> for AstIntepreter<'_> {
-    fn eval(&self, ast: &Expr) -> LoxResult<Expr> {
+    fn eval_rec(&self, ast: &Expr, stack: &ConsList<Frame>) -> LoxResult<Expr> {
         Ok({
             match ast {
                 lit @ Expr::Literal(_) => lit.clone(),
                 Expr::Unary(op, expr) => {
-                    let val = self.eval(&**expr)?;
+                    let val = self.eval_rec(&**expr, stack)?;
                     match op {
                         UnaryOp::Bang => match val {
                             Expr::Literal(LoxType::Boolean(b)) => {
@@ -55,17 +44,17 @@ impl LoxInterpreter<&Expr> for AstIntepreter<'_> {
                     }
                 }
                 Expr::Binary(first, op, second) => {
-                    let first_val = &self.eval(first.as_ref())?;
-                    let second_val = &self.eval(second.as_ref())?;
+                    let first_val = &self.eval_rec(first.as_ref(), stack)?;
+                    let second_val = &self.eval_rec(second.as_ref(), stack)?;
                     match op {
-                        BinaryOp::BangEqual => self.eval(&Expr::Unary(
+                        BinaryOp::BangEqual => self.eval_rec(&Expr::Unary(
                             UnaryOp::Bang,
                             Box::new(Expr::Binary(
                                 Box::new(*first.clone()),
                                 BinaryOp::EqualEqual,
                                 Box::new(*second.clone()),
                             )),
-                        ))?,
+                        ), stack)?,
                         BinaryOp::EqualEqual => match (first_val, second_val) {
                             (Expr::Literal(first_lit), Expr::Literal(second_lit)) => {
                                 match (first_lit, second_lit) {
@@ -158,5 +147,23 @@ impl LoxInterpreter<&Expr> for AstIntepreter<'_> {
                 }
             }
         })
+    }
+}
+
+impl Default for AstIntepreter<'_> {
+    fn default() -> Self {
+        Self::new(&scan_tokens, &parse_tokens)
+    }
+}
+
+impl LoxInterpreter<&str> for AstIntepreter<'_> {
+    fn eval(&self, input: &str) -> LoxResult<Expr> {
+        self.eval(&(self.parser)((self.lexer)(input)?.as_ref())?)
+    }
+}
+
+impl LoxInterpreter<&Expr> for AstIntepreter<'_> {
+    fn eval(&self, ast: &Expr) -> LoxResult<Expr> {
+        self.eval_rec(ast, &ConsList::new().append(Frame::default()))
     }
 }

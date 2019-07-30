@@ -18,6 +18,7 @@ mod lexer;
 mod parser;
 mod token;
 mod types;
+mod stack;
 
 #[derive(StructOpt)]
 struct Cli {
